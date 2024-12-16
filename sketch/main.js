@@ -14,6 +14,10 @@ let mouthOpen = 0;
 let numScreens = 1; // 캠화면개수
 let options = { maxFaces: 1, refineLandmarks: false, flipHorizontal: false };
 
+function preload() {
+  faceMesh = ml5.faceMesh(options);
+}
+
 function setup() {
   // 컨테이너의 현재 위치, 크기 등의 정보 가져와서 객체구조분해할당을 통해 너비, 높이 정보를 변수로 추출.
   const container = document.querySelector('.container-canvas'); // 위치 이동
@@ -41,10 +45,6 @@ function setup() {
   init();
   // createCanvas를 제외한 나머지 구문을 여기 혹은 init()에 작성.
   // windowResized()에서 setup()에 준하는 구문을 실행해야할 경우를 대비해 init이라는 명칭의 함수를 만들어 둠.
-}
-
-function init() {
-  // 캠 초기화
   video = createCapture(
     {
       video: {
@@ -55,38 +55,24 @@ function init() {
     () => {
       video.size(containerW, (containerW * aspectH) / aspectW);
       video.hide();
+
+      // faceMesh 초기화
+      faceMesh = ml5.faceMesh(video, options, () => {
+        console.log('FaceMesh initialized');
+      });
+      faceMesh.on('predict', gotFaces);
     }
   );
-
-  faceMesh = ml5.faceMesh(video, options, () => {});
-  faceMesh.on('predict', (results) => {
-    faces = results;
-  });
 }
 
-// 캠 화면 개수만큼 반복
-let cols = ceil(sqrt(numScreens));
-let rows = ceil(numScreens / cols);
-let w = width / cols;
-let h = height / rows;
+function init() {}
 
-for (let i = 0; i < numScreens; i++) {
-  let x = (i % cols) * w;
-  let y = floor(i / cols) * h;
-  image(video, 0, 0, width, height);
-}
-if (faces.length > 0) {
-  let face = faces[0];
-  mouthOpen = calcMouthOpen(face);
-  // 입크기에 따라 화면 개수 조정
-  numScreens = floor(map(mouthOpen, 0, 100, 1, 16));
-  numScreens = constrain(numScreens, 1, 16); // 최대 16개 제한
-}
-
-// 입 열림 계산 함수
 function calcMouthOpen(face) {
-  let upper = face.keypoints[13];
-  let lower = face.keypoints[14];
+  // 입술 상단과 하단 좌표 계산
+  let upper = face.landmarks[13];
+  let lower = face.landmarks[14];
+
+  // 거리 계산
   return dist(
     upper.x * width,
     upper.y * height,
@@ -122,8 +108,26 @@ function windowResized() {
 function draw() {
   background(255);
 
-  // 얼굴 인식 결과 콜백 함수
-  function gotFaces(results) {
-    faces = results;
+  let cols = ceil(sqrt(numScreens));
+  let rows = ceil(numScreens / cols);
+  let w = width / cols;
+  let h = height / rows;
+
+  for (let i = 0; i < numScreens; i++) {
+    let x = (i % cols) * w;
+    let y = floor(i / cols) * h;
+    image(video, x, y, w, h);
   }
+  if (faces.length > 0) {
+    let face = faces[0];
+    mouthOpen = calcMouthOpen(face);
+    // 입크기에 따라 화면 개수 조정
+    numScreens = floor(map(mouthOpen, 0, 100, 1, 16));
+    numScreens = constrain(numScreens, 1, 16); // 최대 16개 제한
+  }
+
+  // 얼굴 인식 결과 콜백 함수
+}
+function gotFaces(results) {
+  faces = results;
 }
