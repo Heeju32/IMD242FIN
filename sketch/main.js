@@ -52,6 +52,7 @@ function setup() {
       },
       audio: false,
     },
+
     () => {
       video.size(containerW, (containerW * aspectH) / aspectW);
       video.hide();
@@ -107,7 +108,6 @@ function windowResized() {
 
 function draw() {
   background(255);
-
   let cols = ceil(sqrt(numScreens));
   let rows = ceil(numScreens / cols);
   let w = width / cols;
@@ -118,11 +118,11 @@ function draw() {
     let y = floor(i / cols) * h;
     image(video, x, y, w, h);
   }
+
   if (faces.length > 0) {
     let face = faces[0];
     mouthOpen = calcMouthOpen(face);
-    // 입크기에 따라 화면 개수 조정
-    numScreens = floor(map(mouthOpen, 0, 100, 1, 16));
+    numScreens = floor(map(mouthOpen, 10, 150, 1, 16));
     numScreens = constrain(numScreens, 1, 16); // 최대 16개 제한
   }
 
